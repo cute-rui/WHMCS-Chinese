@@ -1,12 +1,11 @@
 package main
 
 import (
+	"WHMCS-Chinese/src/provider"
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
-	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
-	tmt "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tmt/v20180321"
+	"log"
 	"os"
 	"os/exec"
 	"sort"
@@ -17,24 +16,79 @@ import (
 
 const maxRoutine = 5
 const maxRetry = 5
+const batch = 16
 const adminFile = `admin.php`
 const langFile = `lang.php`
 
 var lang = map[int]string{}
 var lineOffset = 1000000
-var tencentSecret = ""
-var tencentID = ""
+var p provider.Provider
 var resultMap = sync.Map{}
 
 func main() {
-	flag.StringVar(&tencentID, "id", "", "display colorized output")
-	flag.StringVar(&tencentSecret, "secret", "", "display colorized output")
+	flag.StringVar(&provider.TencentID, "id", "", "")
+	flag.StringVar(&provider.TencentSecret, "secret", "", "")
+	flag.StringVar(&provider.ProviderType, "provider", "", "")
+	flag.StringVar(&provider.GoogleAPIKey, "google", "", "")
+
 	flag.Parse()
 
-	getDiff()
+	srv, err := provider.SetupProvider()
+	if err != nil {
+		return
+	}
+
+	p = srv
+
+	GetDiff()
 	translate()
-	copyLatestFile()
-	overwriteLatestFile()
+	CopyLatestFile()
+	OverwriteLatestFile()
+}
+
+func translate() {
+	currentIndex := 0
+	keys := SortMap(lang)
+	indexLock := sync.Mutex{}
+	var WG sync.WaitGroup
+	for i := 0; i < maxRoutine; i++ {
+		WG.Add(1)
+		go func() {
+			for currentIndex < len(lang)-1 {
+				num := batch
+				indexLock.Lock()
+				keyid := currentIndex
+				if final := len(lang) - 1 - currentIndex; final < batch {
+					currentIndex += final
+					num = final
+				} else {
+					currentIndex += batch
+				}
+				indexLock.Unlock()
+				if num == 0 {
+					break
+				}
+
+				var arr []string
+				for j := 0; j < num; j++ {
+					arr = append(arr, lang[keys[keyid+j]])
+				}
+
+				data, err := p.Translate(arr)
+				if err != nil {
+					log.Println(err.Error())
+				}
+
+				for j := range data {
+					resultMap.Store(keys[keyid+j], data[j])
+				}
+				time.Sleep(1 * time.Second)
+			}
+			WG.Done()
+		}()
+	}
+	WG.Wait()
+
 }
 
 func readFileToStringMap(path string, isAdmin bool) (map[int]string, error) {
@@ -92,7 +146,7 @@ func getBeforeLatest(path string) (string, error, bool) {
 	return ret, nil, true
 }
 
-func copyLatestFile() error {
+func CopyLatestFile() error {
 	beforeLatest, err, exist := getBeforeLatest("./archives")
 	if !exist {
 		os.Create("./archives/latest/" + adminFile)
@@ -108,7 +162,7 @@ func copyLatestFile() error {
 	return exec.Command("cp", "-r", "./archives/"+beforeLatest, "./archives/latest").Run()
 }
 
-func overwriteLatestFile() error {
+func OverwriteLatestFile() error {
 	lMap := map[int]string{}
 	aMap := map[int]string{}
 	for index := range lang {
@@ -124,10 +178,11 @@ func overwriteLatestFile() error {
 			continue
 		}
 
-		aMap[index] = data
+		aMap[index-lineOffset] = data
 	}
 
 	overwrite(lMap, "./archives/latest/"+langFile)
+	overwrite(aMap, "./archives/latest/"+adminFile)
 
 	return nil
 }
@@ -146,8 +201,9 @@ func overwrite(data map[int]string, path string) error {
 		lines = append(lines, scanner.Text())
 	}
 
-	keys := sortMap(data)
+	keys := SortMap(data)
 	for _, index := range keys {
+
 		for len(lines) <= index {
 			lines = append(lines, "")
 		}
@@ -167,7 +223,7 @@ func overwrite(data map[int]string, path string) error {
 	return nil
 }
 
-func sortMap(data map[int]string) []int {
+func SortMap(data map[int]string) []int {
 	var keys []int
 	for k := range data {
 		keys = append(keys, k)
@@ -177,7 +233,7 @@ func sortMap(data map[int]string) []int {
 	return keys
 }
 
-func getDiff() error {
+func GetDiff() error {
 	latestAdmin, err := readFileToStringMap("./eng/latest/"+adminFile, true)
 	latestLang, err := readFileToStringMap("./eng/latest/"+langFile, false)
 
@@ -217,60 +273,4 @@ func getDiff() error {
 
 	lang = latestLang
 	return nil
-}
-
-func translate() {
-	credential := common.NewCredential(
-		tencentID,
-		tencentSecret,
-	)
-
-	client, _ := tmt.NewClient(credential, "ap-hongkong", profile.NewClientProfile())
-
-	currentIndex := 0
-	keys := sortMap(lang)
-	indexLock := sync.Mutex{}
-	var WG sync.WaitGroup
-	for i := 0; i < maxRoutine; i++ {
-		WG.Add(1)
-		go func() {
-			for currentIndex < len(lang)-1 {
-				indexLock.Lock()
-				keyid := currentIndex
-				currentIndex++
-				indexLock.Unlock()
-				var ret string
-				// translate
-				func() error {
-					arr := strings.Split(lang[keys[keyid]], `"`)
-					request := tmt.NewTextTranslateRequest()
-
-					request.SourceText = common.StringPtr(arr[1])
-					request.Source = common.StringPtr("en")
-					request.Target = common.StringPtr("zh")
-					request.ProjectId = common.Int64Ptr(0)
-					response, err := client.TextTranslate(request)
-					if err != nil {
-						return err
-					}
-					data := *response.Response.TargetText
-
-					ret = arr[0] + `"` + data + `"` + arr[2]
-					return nil
-				}()
-
-				resultMap.Store(keys[keyid], ret)
-				time.Sleep(1 * time.Second)
-			}
-			WG.Done()
-		}()
-	}
-	WG.Wait()
-
-}
-
-func BackOff(f func() error) error {
-
-	return nil
-
 }
