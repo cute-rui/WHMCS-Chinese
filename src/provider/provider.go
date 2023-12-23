@@ -27,11 +27,15 @@ func PreProcess(str []string) (string, map[int][]string) {
 	ret := map[int][]string{}
 	keywords := []string{}
 	for i := range str {
+		strings.ReplaceAll(str[i], `\"`, `REPLACEHOLDERFORTEMPORARYMARK`)
+
 		arr := strings.Split(str[i], `"`)
 		if len(arr) != 3 {
 			log.Println(`invalid data`, str[i])
 			continue
 		}
+
+		strings.ReplaceAll(str[i], `REPLACEHOLDERFORTEMPORARYMARK`, `\"`)
 		keywords = append(keywords, arr[1])
 		ret[i] = arr
 	}
