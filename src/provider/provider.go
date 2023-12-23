@@ -27,7 +27,7 @@ func PreProcess(str []string) (string, map[int][]string) {
 	ret := map[int][]string{}
 	keywords := []string{}
 	for i := range str {
-		strings.ReplaceAll(str[i], `\"`, `REPLACEHOLDERFORTEMPORARYMARK`)
+		str[i] = strings.ReplaceAll(str[i], `\"`, `REPLACEHOLDERFORTEMPORARYMARK`)
 
 		arr := strings.Split(str[i], `"`)
 		if len(arr) != 3 {
@@ -35,7 +35,7 @@ func PreProcess(str []string) (string, map[int][]string) {
 			continue
 		}
 
-		strings.ReplaceAll(str[i], `REPLACEHOLDERFORTEMPORARYMARK`, `\"`)
+		str[i] = strings.ReplaceAll(str[i], `REPLACEHOLDERFORTEMPORARYMARK`, `\"`)
 		keywords = append(keywords, arr[1])
 		ret[i] = arr
 	}
