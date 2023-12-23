@@ -1,0 +1,61 @@
+name: Build
+on:
+  release:
+    types: [prereleased]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  checks: write
+  contents: write
+  deployments: write
+  issues: write
+  packages: write
+  pull-requests: write
+  repository-projects: write
+  security-events: write
+  statuses: write
+
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source file
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4.0.1
+        with:
+          go-version: '1.21'
+
+      - name: Go module tidy
+        run: go mod tidy
+
+      - name: Build
+        run: go build -o service -v ./main.go
+
+      - name: Run
+        env: 
+          GoogleAPIKey: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          chmod +x service && ./service --provider gemini --google $GoogleAPIKey
+          tar -czvf Latest-PHP.tar.gz ./archives/latest/admin.php ./archives/latest/lang.php
+
+      - name: Linux - Uploading Artifact
+        uses: actions/upload-artifact@master
+        with:
+          name: Latest-PHP.tar.gz
+          path: Latest-PHP.tar.gz
+
+      - name: Linux - Upload binaries to release
+        uses: svenstaro/upload-release-action@v1-release
+        if: github.event_name == 'release'
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: Latest-PHP.tar.gz
+          asset_name: Latest-PHP.tar.gz
+          tag: ${{ github.ref }}
+          overwrite: true
