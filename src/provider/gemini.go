@@ -35,7 +35,6 @@ func (g *Gemini) Translate(str []string) ([]string, error) {
 		return nil, err
 	}
 
-	log.Println(resp)
 	return PostProcess(strArr, fmt.Sprintf("%s", resp.Candidates[0].Content.Parts[len(resp.Candidates[0].Content.Parts)-1])), nil
 }
 

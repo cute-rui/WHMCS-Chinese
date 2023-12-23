@@ -16,7 +16,7 @@ import (
 
 const maxRoutine = 5
 const maxRetry = 5
-const batch = 16
+const batch = 32
 const adminFile = `admin.php`
 const langFile = `lang.php`
 
@@ -82,7 +82,7 @@ func translate() {
 				for j := range data {
 					resultMap.Store(keys[keyid+j], data[j])
 				}
-				time.Sleep(1 * time.Second)
+				time.Sleep(30 * time.Second)
 			}
 			WG.Done()
 		}()
