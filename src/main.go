@@ -82,7 +82,7 @@ func translate() {
 				for j := range data {
 					resultMap.Store(keys[keyid+j], data[j])
 				}
-				time.Sleep(30 * time.Second)
+				time.Sleep(15 * time.Second)
 			}
 			WG.Done()
 		}()
