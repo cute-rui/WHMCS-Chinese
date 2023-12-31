@@ -39,5 +39,5 @@ func (g *Gemini) Translate(str []string) ([]string, error) {
 }
 
 func GetPrompt(str string) genai.Text {
-	return genai.Text(`请将下列英文词组翻译为中文，这些词组来自于WHMCS销售系统，不需要其他的回应，直接每行输出一个对应的中文翻译即可，并且请使用“您”代替“你”：` + "\n" + str)
+	return genai.Text(`请将下列英文词组翻译为中文，这些词组来自于WHMCS销售系统，不需要其他的回应，直接每行输出一个对应的中文翻译即可，并且请使用“您”代替“你”，行数请保持一致，不要有多余的换行：` + "\n" + str)
 }

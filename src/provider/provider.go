@@ -48,7 +48,7 @@ func PostProcess(raw map[int][]string, data string) []string {
 	ret := []string{}
 	for i := range dataArr {
 		if len(raw[i]) != 3 {
-			log.Println(`invalid data`, raw[i])
+			log.Println(`invalid data`, raw[i], data)
 			continue
 		}
 		ret = append(ret, raw[i][0]+`"`+dataArr[i]+`"`+raw[i][2])
