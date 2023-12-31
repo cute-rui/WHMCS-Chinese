@@ -27,15 +27,15 @@ func PreProcess(str []string) (string, map[int][]string) {
 	ret := map[int][]string{}
 	keywords := []string{}
 	for i := range str {
-		str[i] = strings.ReplaceAll(str[i], `\"`, `REPLACEHOLDERFORTEMPORARYMARK`)
+		toProc := strings.ReplaceAll(str[i], `\"`, `REPLACEHOLDERFORTEMPORARYMARK`)
 
-		arr := strings.Split(str[i], `"`)
+		arr := strings.Split(toProc, `"`)
 		if len(arr) != 3 {
 			log.Println(`invalid data`, str[i])
 			continue
 		}
 
-		str[i] = strings.ReplaceAll(str[i], `REPLACEHOLDERFORTEMPORARYMARK`, `\"`)
+		arr[1] = strings.ReplaceAll(arr[1], `REPLACEHOLDERFORTEMPORARYMARK`, `\"`)
 		keywords = append(keywords, arr[1])
 		ret[i] = arr
 	}
@@ -48,7 +48,7 @@ func PostProcess(raw map[int][]string, data string) []string {
 	ret := []string{}
 	for i := range dataArr {
 		if len(raw[i]) != 3 {
-			log.Println(`invalid data`, raw[i], data)
+			log.Println(`invalid data`, raw[i], raw, data)
 			continue
 		}
 		ret = append(ret, raw[i][0]+`"`+dataArr[i]+`"`+raw[i][2])
