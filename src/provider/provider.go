@@ -36,11 +36,12 @@ func PreProcess(str []string) (string, map[int][]string) {
 		}
 
 		if len(arr) != 3 {
-			log.Println(`invalid data`)
+			log.Println(`invalid data`, str[i])
 			continue
 		}
 
 		arr[1] = strings.ReplaceAll(arr[1], `REPLACEHOLDERFORTEMPORARYMARK`, `\"`)
+		arr[1] = ReplaceAllReturn(arr[1])
 		keywords = append(keywords, arr[1])
 		ret[i] = arr
 	}
@@ -56,6 +57,7 @@ func PostProcess(raw map[int][]string, data string) []string {
 			log.Println(`invalid data:`, i, raw[i], raw, data)
 			continue
 		}
+		dataArr[i] = ReplaceReturnBack(dataArr[i])
 		ret = append(ret, raw[i][0]+`"`+dataArr[i]+`"`+raw[i][2])
 	}
 
@@ -81,4 +83,12 @@ func tryMatchSingleQuote(toProc string) string {
 	splited[1] = strings.ReplaceAll(splited[1], `'`, `"`)
 
 	return strings.Join(splited, `=`)
+}
+
+func ReplaceAllReturn(str string) string {
+	return strings.ReplaceAll(str, "\n", "/n")
+}
+
+func ReplaceReturnBack(str string) string {
+	return strings.ReplaceAll(str, "/n", "\n")
 }
