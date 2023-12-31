@@ -27,11 +27,16 @@ func PreProcess(str []string) (string, map[int][]string) {
 	ret := map[int][]string{}
 	keywords := []string{}
 	for i := range str {
-		toProc := strings.ReplaceAll(str[i], `\"`, `REPLACEHOLDERFORTEMPORARYMARK`)
 
-		arr := strings.Split(toProc, `"`)
+		arr := splitBySingleQuote(str[i])
+
+		if len(arr) > 3 {
+			str[i] = tryMatchSingleQuote(str[i])
+			arr = splitBySingleQuote(str[i])
+		}
+
 		if len(arr) != 3 {
-			log.Println(`invalid data`, str[i])
+			log.Println(`invalid data`)
 			continue
 		}
 
@@ -48,11 +53,32 @@ func PostProcess(raw map[int][]string, data string) []string {
 	ret := []string{}
 	for i := range dataArr {
 		if len(raw[i]) != 3 {
-			log.Println(`invalid data`, raw[i], raw, data)
+			log.Println(`invalid data:`, i, raw[i], raw, data)
 			continue
 		}
 		ret = append(ret, raw[i][0]+`"`+dataArr[i]+`"`+raw[i][2])
 	}
 
 	return ret
+}
+
+func PHPVarJoiner(string) {
+
+}
+
+func splitBySingleQuote(toProc string) []string {
+	toProc = strings.ReplaceAll(toProc, `\"`, `REPLACEHOLDERFORTEMPORARYMARK`)
+
+	return strings.Split(toProc, `"`)
+}
+
+func tryMatchSingleQuote(toProc string) string {
+	splited := strings.Split(toProc, `=`)
+	if len(splited) != 2 {
+		return toProc
+	}
+
+	splited[1] = strings.ReplaceAll(splited[1], `'`, `"`)
+
+	return strings.Join(splited, `=`)
 }
