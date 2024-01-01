@@ -49,12 +49,28 @@ func PreProcess(str []string) (string, map[int][]string) {
 	return strings.Join(keywords, "\n"), ret
 }
 
+func PreCheckResult(raw map[int][]string, data string) bool {
+	dataArr := strings.Split(data, "\n")
+	if len(raw) != len(dataArr) {
+		log.Println(`precheck failed`)
+		for i := range dataArr {
+			log.Println(raw[i][1], dataArr[i])
+		}
+		PostProcess(raw, data)
+		return false
+	}
+
+	return true
+}
+
 func PostProcess(raw map[int][]string, data string) []string {
 	dataArr := strings.Split(data, "\n")
 	ret := []string{}
 	for i := range dataArr {
 		if len(raw[i]) != 3 {
-			log.Println(`invalid data:`, i, raw[i], raw, data)
+			log.Println(`invalid data:`, i, raw[i], raw, data[i], data)
+			log.Println(`on:`, raw[i], `=>`, data[i])
+			log.Println(raw, dataArr)
 			continue
 		}
 		dataArr[i] = ReplaceReturnBack(dataArr[i])
@@ -66,6 +82,39 @@ func PostProcess(raw map[int][]string, data string) []string {
 
 func PHPVarJoiner(string) {
 
+}
+
+func PHPVarCheck(str []string, dataArr []string) bool {
+	if len(dataArr) != len(str) {
+		maxLen := len(dataArr)
+		if len(str) > len(dataArr) {
+			maxLen = len(str)
+		}
+
+		for i := 0; i < maxLen; i++ {
+			s := ``
+			if i < len(dataArr) {
+				s += dataArr[i]
+			}
+			s += `	`
+			if i < len(str) {
+				s += str[i]
+			}
+			log.Println(s)
+		}
+
+		return false
+	}
+
+	for i := range str {
+		prefix := strings.Split(str[i], `=`)[0]
+		if !strings.HasPrefix(dataArr[i], prefix) {
+			log.Println(`prefix check failed`, str[i], dataArr[i])
+			return false
+		}
+	}
+
+	return true
 }
 
 func splitBySingleQuote(toProc string) []string {
