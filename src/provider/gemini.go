@@ -72,7 +72,7 @@ func (g *Gemini) SetPrompt(str []string, retry bool, parts []genai.Part) ([]stri
 }
 
 func GetRawPHPPrompt(str string) genai.Text {
-	return genai.Text(`请将下列PHP的字符串翻译为中文，这些代码来自于WHMCS销售系统，**仅需要翻译字符串内的英文，禁止更改变量，需要与原格式相同**，并且请使用“您”代替“你”，行数请保持一致，不要有多余的换行, “client”应翻译为客户：` + "\n" + str)
+	return genai.Text(`请将下列PHP的字符串翻译为中文，这些代码来自于WHMCS销售系统，**仅需要翻译字符串内的英文，禁止更改变量，需要与原格式相同，以文本输出，禁止用markdown代码格式包裹**，并且请使用“您”代替“你”，行数请保持一致，不要有多余的换行, “client”应翻译为客户：` + "\n" + str)
 }
 
 func GetPrompt(str string) genai.Text {
