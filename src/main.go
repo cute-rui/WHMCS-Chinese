@@ -17,6 +17,7 @@ import (
 const maxRoutine = 5
 const maxRetry = 5
 const batch = 32
+const largeBatch = 4
 const adminFile = `admin.php`
 const langFile = `lang.php`
 
@@ -33,7 +34,7 @@ func main() {
 
 	flag.Parse()
 
-	srv, err := provider.SetupProvider()
+	srv, err := provider.SetupProvider(largeBatch)
 	if err != nil {
 		return
 	}
@@ -56,13 +57,14 @@ func translate() {
 		go func() {
 			for currentIndex < len(lang)-1 {
 				num := batch
+
 				indexLock.Lock()
 				keyid := currentIndex
-				if final := len(lang) - 1 - currentIndex; final < batch {
+				if final := len(lang) - 1 - currentIndex; final < num {
 					currentIndex += final
 					num = final
 				} else {
-					currentIndex += batch
+					currentIndex += num
 				}
 				indexLock.Unlock()
 				if num == 0 {
@@ -70,11 +72,16 @@ func translate() {
 				}
 
 				var arr []string
+				var isLarge bool
 				for j := 0; j < num; j++ {
+					t := lang[keys[keyid+j]]
+					if len(t) > 900 {
+						isLarge = true
+					}
 					arr = append(arr, lang[keys[keyid+j]])
 				}
 
-				data, err := p.Translate(arr)
+				data, err := p.Translate(arr, isLarge)
 				if err != nil {
 					log.Println(err.Error())
 				}

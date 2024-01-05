@@ -9,15 +9,15 @@ import (
 var ProviderType = `gemini`
 
 type Provider interface {
-	Translate(str []string) ([]string, error)
+	Translate(str []string, isLarge bool) ([]string, error)
 }
 
-func SetupProvider() (Provider, error) {
+func SetupProvider(largeBatch int) (Provider, error) {
 	switch ProviderType {
 	case `tencent`:
-		return SetupTencent()
+		return SetupTencent(largeBatch)
 	case `gemini`:
-		return SetupGemini()
+		return SetupGemini(largeBatch)
 	}
 
 	return nil, errors.New(`provider not found`)

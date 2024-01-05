@@ -12,9 +12,11 @@ var TencentID = ""
 
 type Tencent struct {
 	client *tmt.Client
+
+	largeBatch int
 }
 
-func SetupTencent() (*Tencent, error) {
+func SetupTencent(largeBatch int) (*Tencent, error) {
 	credential := common.NewCredential(
 		TencentID,
 		TencentSecret,
@@ -27,7 +29,7 @@ func SetupTencent() (*Tencent, error) {
 	}, err
 }
 
-func (t *Tencent) Translate(str []string) ([]string, error) {
+func (t *Tencent) Translate(str []string, isLarge bool) ([]string, error) {
 	keyword, strArr := PreProcess(str)
 
 	request := tmt.NewTextTranslateRequest()

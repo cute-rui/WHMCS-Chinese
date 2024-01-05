@@ -7,15 +7,18 @@ import (
 	"google.golang.org/api/option"
 	"log"
 	"strings"
+	"time"
 )
 
 var GoogleAPIKey = ``
 
 type Gemini struct {
 	model *genai.GenerativeModel
+
+	largeBatch int
 }
 
-func SetupGemini() (*Gemini, error) {
+func SetupGemini(largeBatch int) (*Gemini, error) {
 	ctx := context.Background()
 	// Access your API key as an environment variable (see "Set up your API key" above)
 	client, err := genai.NewClient(ctx, option.WithAPIKey(GoogleAPIKey))
@@ -25,13 +28,46 @@ func SetupGemini() (*Gemini, error) {
 
 	model := client.GenerativeModel("gemini-pro")
 
-	return &Gemini{model: model}, nil
+	return &Gemini{model: model, largeBatch: largeBatch}, nil
 }
 
-func (g *Gemini) Translate(str []string) ([]string, error) {
+func (g *Gemini) Translate(str []string, isLarge bool) ([]string, error) {
 	//return g.SetPrompt(str, false, []genai.Part{})
+	if isLarge {
+		var data []string
+		for i := 0; i < len(str); i += g.largeBatch {
+			var arr []string
+			var err error
 
-	resp, err := g.model.GenerateContent(context.Background(), GetRawPHPPrompt(strings.Join(str, "\n")))
+			if i+g.largeBatch >= len(str) {
+				arr, err = g.DirectPipe(str[i:], false, []genai.Part{})
+			} else {
+				arr, err = g.DirectPipe(str[i:i+g.largeBatch], false, []genai.Part{})
+			}
+
+			if err != nil {
+				return nil, err
+			}
+
+			data = append(data, arr...)
+			time.Sleep(15 * time.Second)
+			continue
+		}
+
+		return data, nil
+	}
+	return g.DirectPipe(str, false, []genai.Part{})
+}
+
+func (g *Gemini) DirectPipe(str []string, retry bool, parts []genai.Part) ([]string, error) {
+	content := []genai.Part{}
+	if !retry {
+		content = append(content, GetRawPHPPrompt(strings.Join(str, "\n")))
+	} else {
+		content = append(parts, PHPVarCheckRetryPrompt())
+	}
+
+	resp, err := g.model.GenerateContent(context.Background(), content...)
 	if err != nil {
 		return nil, err
 	}
@@ -40,13 +76,16 @@ func (g *Gemini) Translate(str []string) ([]string, error) {
 	dataArr := strings.Split(data, "\n")
 
 	if !PHPVarCheck(str, dataArr) {
+		if !retry {
+			return g.DirectPipe(str, true, content)
+		}
 		return nil, fmt.Errorf(`php var check failed`)
 	}
 
 	return dataArr, nil
 }
 
-func (g *Gemini) SetPrompt(str []string, retry bool, parts []genai.Part) ([]string, error) {
+func (g *Gemini) PreprocessPipe(str []string, retry bool, parts []genai.Part) ([]string, error) {
 	keyword, strArr := PreProcess(str)
 
 	prompt := []genai.Part{}
@@ -63,7 +102,7 @@ func (g *Gemini) SetPrompt(str []string, retry bool, parts []genai.Part) ([]stri
 
 	if !PreCheckResult(strArr, fmt.Sprintf("%s", resp.Candidates[0].Content.Parts[len(resp.Candidates[0].Content.Parts)-1])) {
 		if !retry {
-			return g.SetPrompt(str, true, prompt)
+			return g.PreprocessPipe(str, true, prompt)
 		}
 		return nil, fmt.Errorf(`get result failed`)
 	}
@@ -77,6 +116,10 @@ func GetRawPHPPrompt(str string) genai.Text {
 
 func GetPrompt(str string) genai.Text {
 	return genai.Text(`请将下列英文词组翻译为中文，这些词组来自于WHMCS销售系统，不需要其他的回应，直接每行输出一个对应的中文翻译即可，并且请使用“您”代替“你”，行数请保持一致，不要有多余的换行，“/n”无需翻译：` + "\n" + str)
+}
+
+func PHPVarCheckRetryPrompt() genai.Text {
+	return genai.Text(`PHP变量检查失败，请重新翻译，行数务必对应`)
 }
 
 func RetryPrompt() genai.Text {
