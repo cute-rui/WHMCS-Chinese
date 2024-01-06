@@ -33,6 +33,9 @@ func SetupGemini(largeBatch int) (*Gemini, error) {
 
 func (g *Gemini) Translate(str []string, isLarge bool) ([]string, error) {
 	//return g.SetPrompt(str, false, []genai.Part{})
+
+	str = removeComment(str)
+
 	if isLarge {
 		var data []string
 		for i := 0; i < len(str); i += g.largeBatch {

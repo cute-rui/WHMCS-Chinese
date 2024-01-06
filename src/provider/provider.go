@@ -145,3 +145,16 @@ func ReplaceAllReturn(str string) string {
 func ReplaceReturnBack(str string) string {
 	return strings.ReplaceAll(str, "/n", "\n")
 }
+
+func removeComment(str []string) []string {
+	ret := []string{}
+	for i := range str {
+		if strings.Contains(str[i], `//`) {
+			log.Println(`contains comment`, str[i])
+			ret = append(ret, strings.Split(str[i], `//`)[0])
+		}
+		ret = append(ret, str[i])
+	}
+
+	return ret
+}
