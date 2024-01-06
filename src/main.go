@@ -75,7 +75,7 @@ func translate() {
 				var isLarge bool
 				for j := 0; j < num; j++ {
 					t := lang[keys[keyid+j]]
-					if len(t) > 900 {
+					if len(t) > 600 {
 						isLarge = true
 					}
 					arr = append(arr, lang[keys[keyid+j]])

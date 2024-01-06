@@ -107,6 +107,10 @@ func PHPVarCheck(str []string, dataArr []string) bool {
 	}
 
 	for i := range str {
+		if !(strings.HasSuffix(str[i], `;`) || strings.HasSuffix(str[i], `;\n`)) {
+			log.Println(`has no semicolon`, str[i], dataArr[i])
+			return false
+		}
 		prefix := strings.Split(str[i], `=`)[0]
 		if !strings.HasPrefix(dataArr[i], prefix) {
 			log.Println(`prefix check failed`, str[i], dataArr[i])
