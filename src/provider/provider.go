@@ -3,6 +3,7 @@ package provider
 import (
 	"errors"
 	"log"
+	"regexp"
 	"strings"
 )
 
@@ -107,7 +108,7 @@ func PHPVarCheck(str []string, dataArr []string) bool {
 	}
 
 	for i := range str {
-		if !(strings.HasSuffix(str[i], `;`) || strings.HasSuffix(str[i], `;\n`)) {
+		if !(strings.HasSuffix(removeWhitespace(str[i]), `;`)) {
 			log.Println(`has no semicolon`, str[i], dataArr[i])
 			return false
 		}
@@ -146,14 +147,20 @@ func ReplaceReturnBack(str string) string {
 	return strings.ReplaceAll(str, "/n", "\n")
 }
 
+func removeWhitespace(str string) string {
+	r, _ := regexp.Compile(`\s+`)
+	return r.ReplaceAllString(str, ``)
+}
+
 func removeComment(str []string) []string {
 	ret := []string{}
 	for i := range str {
+		temp := strings.ReplaceAll(str[i], `://`, `SCHEMA`)
 		if strings.Contains(str[i], `//`) {
 			log.Println(`contains comment`, str[i])
-			ret = append(ret, strings.Split(str[i], `//`)[0])
+			temp = strings.Split(temp, `//`)[0]
 		}
-		ret = append(ret, str[i])
+		ret = append(ret, strings.ReplaceAll(temp, `SCHEMA`, `://`))
 	}
 
 	return ret
