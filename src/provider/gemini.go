@@ -10,6 +10,15 @@ import (
 	"time"
 )
 
+const INIT = 0
+
+const (
+	ALL_MATCH = iota
+	LENGTH_NOT_MATCH
+	PREFIX_NOT_MATCH
+	SEMICOLON_NOT_MATCH
+)
+
 var GoogleAPIKey = ``
 
 type Gemini struct {
@@ -43,9 +52,9 @@ func (g *Gemini) Translate(str []string, isLarge bool) ([]string, error) {
 			var err error
 
 			if i+g.largeBatch >= len(str) {
-				arr, err = g.DirectPipe(str[i:], false, []genai.Part{})
+				arr, err = g.DirectPipe(str[i:], INIT, []genai.Part{})
 			} else {
-				arr, err = g.DirectPipe(str[i:i+g.largeBatch], false, []genai.Part{})
+				arr, err = g.DirectPipe(str[i:i+g.largeBatch], INIT, []genai.Part{})
 			}
 
 			if err != nil {
@@ -59,15 +68,21 @@ func (g *Gemini) Translate(str []string, isLarge bool) ([]string, error) {
 
 		return data, nil
 	}
-	return g.DirectPipe(str, false, []genai.Part{})
+	return g.DirectPipe(str, INIT, []genai.Part{})
 }
 
-func (g *Gemini) DirectPipe(str []string, retry bool, parts []genai.Part) ([]string, error) {
+func (g *Gemini) DirectPipe(str []string, retry int, parts []genai.Part) ([]string, error) {
 	content := []genai.Part{}
-	if !retry {
+
+	switch retry {
+	case INIT:
 		content = append(content, GetRawPHPPrompt(strings.Join(str, "\n")))
-	} else {
+	case LENGTH_NOT_MATCH:
+		content = append(parts, RetryPrompt())
+	case PREFIX_NOT_MATCH:
 		content = append(parts, PHPVarCheckRetryPrompt())
+	case SEMICOLON_NOT_MATCH:
+		content = append(parts, SemicolonCheckRetryPrompt())
 	}
 
 	resp, err := g.model.GenerateContent(context.Background(), content...)
@@ -78,9 +93,9 @@ func (g *Gemini) DirectPipe(str []string, retry bool, parts []genai.Part) ([]str
 	data := fmt.Sprintf("%s", resp.Candidates[0].Content.Parts[len(resp.Candidates[0].Content.Parts)-1])
 	dataArr := strings.Split(data, "\n")
 
-	if !PHPVarCheck(str, dataArr) {
-		if !retry {
-			return g.DirectPipe(str, true, content)
+	if code := PHPVarCheck(str, dataArr); code != ALL_MATCH {
+		if retry == INIT {
+			return g.DirectPipe(str, code, content)
 		}
 		return nil, fmt.Errorf(`php var check failed`)
 	}
@@ -114,7 +129,7 @@ func (g *Gemini) PreprocessPipe(str []string, retry bool, parts []genai.Part) ([
 }
 
 func GetRawPHPPrompt(str string) genai.Text {
-	return genai.Text(`请将下列PHP的字符串翻译为中文，这些代码来自于WHMCS销售系统，**仅需要翻译字符串内的英文，禁止更改变量，需要与原格式相同，以文本输出，禁止用markdown代码格式包裹**，并且请使用“您”代替“你”，行数请保持一致，不要有多余的换行, “client”应翻译为客户：` + "\n" + str)
+	return genai.Text(`请将下列PHP的字符串翻译为中文，这些代码来自于WHMCS销售系统，**仅需要翻译字符串内的英文，禁止更改变量，需要与原格式相同，以文本输出，禁止用markdown代码格式包裹**，并且请使用“您”代替“你”，行数请保持一致，不要有多余的换行并删除所有注释，“client”应翻译为客户：` + "\n" + str)
 }
 
 func GetPrompt(str string) genai.Text {
@@ -123,6 +138,10 @@ func GetPrompt(str string) genai.Text {
 
 func PHPVarCheckRetryPrompt() genai.Text {
 	return genai.Text(`PHP变量检查失败，请重新翻译，行数务必对应`)
+}
+
+func SemicolonCheckRetryPrompt() genai.Text {
+	return genai.Text(`末尾没有分号，请重新翻译，行数务必对应`)
 }
 
 func RetryPrompt() genai.Text {

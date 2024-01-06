@@ -85,7 +85,7 @@ func PHPVarJoiner(string) {
 
 }
 
-func PHPVarCheck(str []string, dataArr []string) bool {
+func PHPVarCheck(str []string, dataArr []string) int {
 	if len(dataArr) != len(str) {
 		maxLen := len(dataArr)
 		if len(str) > len(dataArr) {
@@ -104,21 +104,29 @@ func PHPVarCheck(str []string, dataArr []string) bool {
 			log.Println(s)
 		}
 
-		return false
+		return LENGTH_NOT_MATCH // len not match
 	}
 
 	for i := range str {
-		if !(strings.HasSuffix(removeWhitespace(str[i]), `;`)) {
-			log.Println(`has no semicolon`, str[i], dataArr[i])
-			return false
+		if !PHPSemicolonCheck(str[i]) {
+			return SEMICOLON_NOT_MATCH // semicolon not match
 		}
+
 		prefix := strings.Split(str[i], `=`)[0]
 		if !strings.HasPrefix(dataArr[i], prefix) {
 			log.Println(`prefix check failed`, str[i], dataArr[i])
-			return false
+			return PREFIX_NOT_MATCH // prefix not match
 		}
 	}
 
+	return ALL_MATCH // all match
+}
+
+func PHPSemicolonCheck(data string) bool {
+	if !(strings.HasSuffix(removeWhitespace(data), `;`)) {
+		log.Println(`has no semicolon`, data)
+		return false
+	}
 	return true
 }
 

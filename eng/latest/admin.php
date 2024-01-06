@@ -683,7 +683,7 @@ $_ADMINLANG['domains']['ifreq'] = "If Required";
 $_ADMINLANG['domains']['sendregisterconfirm'] = "Check to Send Registration Confirmation Email on Successful Completion";
 $_ADMINLANG['domains']['regsuccess'] = "Domain Registered Successfully";
 $_ADMINLANG['domains']['transuccess'] = "Domain Transfer Initiated Successfully";
-$_ADMINLANG['domains']['actionquestion'] = "Are you sure you want to %s this domain?"; #%s is either actionreg or transfer
+$_ADMINLANG['domains']['actionquestion'] = "Are you sure you want to %s this domain?"; //%s is either actionreg or transfer
 $_ADMINLANG['domains']['nodomains'] = "No Domains";
 $_ADMINLANG['domains']['nodomainsinfo'] = "No domains found for this user.";
 $_ADMINLANG['domains']['domainidnotfound'] = "Domain ID Not Found";
@@ -3280,7 +3280,7 @@ $_ADMINLANG['bans']['ipdelsuccessinfo'] = "Banned IP Address Deleted Successfull
 $_ADMINLANG['bans']['ipdelsure'] = "Are you sure you want to delete this banned IP address?";
 $_ADMINLANG['bans']['banreason'] = "Ban Reason";
 $_ADMINLANG['bans']['banexpires'] = "Ban Expires";
-$_ADMINLANG['bans']['format'] = "Format: DD/MM/YYYY HH:MM"; #format cannot be changed, just translated values
+$_ADMINLANG['bans']['format'] = "Format: DD/MM/YYYY HH:MM"; //format cannot be changed, just translated values
 $_ADMINLANG['bans']['addbannedip'] = "Add Banned IP";
 
 # Client Groups
