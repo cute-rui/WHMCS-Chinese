@@ -156,7 +156,7 @@ func removeComment(str []string) []string {
 	ret := []string{}
 	for i := range str {
 		temp := strings.ReplaceAll(str[i], `://`, `SCHEMA`)
-		if strings.Contains(str[i], `//`) {
+		if strings.Contains(temp, `//`) {
 			log.Println(`contains comment`, str[i])
 			temp = strings.Split(temp, `//`)[0]
 		}
